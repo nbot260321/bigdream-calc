@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ビッグドリーム 推定IN枚数計算</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 4px;
+      color: #ffd700;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #16213e;
+      color: #ffd700;
+      padding: 10px 8px;
+      text-align: center;
+      border: 1px solid #333;
+      white-space: nowrap;
+    }
+
+    td {
+      border: 1px solid #333;
+      padding: 6px 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    td:first-child {
+      background: #16213e;
+      color: #aaa;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    input[type="number"] {
+      width: 90px;
+      padding: 6px;
+      background: #0f3460;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.95rem;
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input:focus { outline: 2px solid #ffd700; }
+
+    .result {
+      color: #7efff5;
+      font-weight: bold;
+      font-size: 1rem;
+      min-width: 70px;
+    }
+
+    .total-row td {
+      background: #16213e;
+      font-weight: bold;
+    }
+    .total-label {
+      color: #ffd700 !important;
+      font-size: 0.9rem !important;
+    }
+    .total-value {
+      color: #ffd700;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      justify-content: center;
+    }
+
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-calc {
+      background: #ffd700;
+      color: #1a1a2e;
+    }
+    .btn-clear {
+      background: #444;
+      color: #eee;
+    }
+
+    .note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 14px;
+    }
+
+    .add-row-btn {
+      display: block;
+      margin: 10px auto 0;
+      background: #0f3460;
+      color: #7efff5;
+      border: 1px solid #7efff5;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>スマスロ ビッグドリームTHE GOLDEN PUSHER</h1>
+<p class="subtitle">推定IN枚数計算｜50枚/千円・約30.7G で試算</p>
+
+<div class="table-wrap">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th></th>
+        <th>初当たりまでのG数</th>
+        <th>払出し枚数</th>
+        <th>推定IN枚数</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="3" class="total-label">推定IN枚数 合計</td>
+        <td class="total-value" id="totalCell">—</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<button class="add-row-btn" onclick="addRow()">＋ 行を追加</button>
+
+<div class="btn-row">
+  <button class="btn-calc" onclick="calculate()">計算する</button>
+  <button class="btn-clear" onclick="clearAll()">リセット</button>
+</div>
+
+<p class="note">G数 ÷ 30.7 = 千円数（四捨五入）→ ×50枚 − 払出し枚数 ＝ 推定IN枚数</p>
+
+<script>
+  const RATE = 30.7;
+  const MEDALS_PER_1K = 50;
+  let rowCount = 0;
+
+  function addRow() {
+    rowCount++;
+    const tbody = document.getElementById('tbody');
+    const tr = document.createElement('tr');
+    tr.id = `row${rowCount}`;
+    tr.innerHTML = `
+      <td>${rowCount}回目</td>
+      <td><input type="number" id="g${rowCount}" placeholder="例: 413" min="0" oninput="calculate()"></td>
+      <td><input type="number" id="p${rowCount}" placeholder="例: 393" min="0" oninput="calculate()"></td>
+      <td class="result" id="r${rowCount}">—</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function calculate() {
+    let total = 0;
+    let allEmpty = true;
+    for (let i = 1; i <= rowCount; i++) {
+      const gEl = document.getElementById(`g${i}`);
+      const pEl = document.getElementById(`p${i}`);
+      const rEl = document.getElementById(`r${i}`);
+      if (!gEl) continue;
+      const g = parseFloat(gEl.value);
+      const p = parseFloat(pEl.value);
+      if (!isNaN(g) && g >= 0 && !isNaN(p) && p >= 0) {
+        const sen = Math.round(g / RATE);
+        const used = sen * MEDALS_PER_1K;
+        const inMedals = used - p;
+        rEl.textContent = inMedals.toLocaleString() + '枚';
+        total += inMedals;
+        allEmpty = false;
+      } else {
+        rEl.textContent = '—';
+      }
+    }
+    document.getElementById('totalCell').textContent = allEmpty ? '—' : total.toLocaleString() + '枚';
+  }
+
+  function clearAll() {
+    for (let i = 1; i <= rowCount; i++) {
+      const g = document.getElementById(`g${i}`);
+      const p = document.getElementById(`p${i}`);
+      if (g) g.value = '';
+      if (p) p.value = '';
+      const r = document.getElementById(`r${i}`);
+      if (r) r.textContent = '—';
+    }
+    document.getElementById('totalCell').textContent = '—';
+  }
+
+  // 初期5行
+  for (let i = 0; i < 5; i++) addRow();
+</script>
+
+</body>
+</html>
