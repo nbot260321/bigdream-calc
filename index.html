@@ -13,6 +13,7 @@
       color: #eee;
       min-height: 100vh;
       padding: 12px;
+      padding-bottom: 80px;
     }
 
     h1 {
@@ -149,6 +150,22 @@
       margin-top: 14px;
       line-height: 1.6;
     }
+
+    /* 合計ボックスを画面下部に固定 */
+    .total-fixed {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1a1a2e;
+      padding: 10px 12px;
+      border-top: 2px solid #ffd700;
+      z-index: 100;
+    }
+    .total-fixed .total-box {
+      margin-top: 0;
+      border-top: none;
+    }
   </style>
 </head>
 <body>
@@ -158,17 +175,19 @@
 
 <div class="cards" id="cards"></div>
 
-<div class="total-box" style="margin-top:14px;">
-  <span class="label">推定IN枚数 合計</span>
-  <span class="value" id="totalCell">—</span>
-</div>
-
 <div class="btn-row">
   <button class="btn-add" onclick="addCard()">＋ 追加</button>
   <button class="btn-clear" onclick="clearAll()">リセット</button>
 </div>
 
 <p class="note">G数 ÷ 30.7 ＝ 千円数（四捨五入）→ ×50枚 − 払出し枚数 ＝ 推定IN枚数</p>
+
+<div class="total-fixed">
+  <div class="total-box">
+    <span class="label">推定IN枚数 合計</span>
+    <span class="value" id="totalCell">—</span>
+  </div>
+</div>
 
 <script>
   const RATE = 30.7;
@@ -229,7 +248,7 @@
     document.getElementById('totalCell').textContent = '—';
   }
 
-  for (let i = 0; i < 5; i++) addCard();
+  for (let i = 0; i < 3; i++) addCard();
 </script>
 
 </body>
