@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /privacy.html
 
-Sitemap: https://nbot260321.github.io/bigdream-calc/sitemap.xml
+Sitemap: https://pachislot-navi.com/sitemap.xml
