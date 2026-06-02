@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>汎用スロット 推定IN枚数計算ツール【無料】</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 12px;
+      padding-bottom: 80px;
+    }
+
+    h1 {
+      font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 12px;
+      color: #ffd700;
+      line-height: 1.4;
+    }
+
+    /* 設定カード */
+    .settings-card {
+      background: #16213e;
+      border: 2px solid #ffd700;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .settings-title {
+      font-size: 0.82rem;
+      color: #ffd700;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .settings-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* カード共通 */
+    .card {
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-header {
+      font-size: 0.85rem;
+      color: #ffd700;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .card-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 8px;
+      background: #0f3460;
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      -moz-appearance: textfield;
+      -webkit-appearance: none;
+    }
+    .field input::-webkit-inner-spin-button,
+    .field input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .field input:focus { outline: 2px solid #ffd700; }
+
+    .card-result {
+      text-align: right;
+      font-size: 0.78rem;
+      color: #aaa;
+    }
+    .card-result span {
+      color: #7efff5;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    /* ボタン */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .btn-add {
+      flex: 1;
+      padding: 13px;
+      background: #0f3460;
+      color: #7efff5;
+      border: 1px solid #7efff5;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-clear {
+      flex: 1;
+      padding: 13px;
+      background: #333;
+      color: #eee;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* 注記 */
+    .note {
+      text-align: center;
+      font-size: 0.68rem;
+      color: #555;
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+
+    /* 合計固定表示 */
+    .total-fixed {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1a1a2e;
+      padding: 10px 12px;
+      border-top: 2px solid #ffd700;
+      z-index: 100;
+    }
+    .total-box {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .total-box .label {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+    .total-box .value {
+      color: #ffd700;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎰 汎用スロット<br>推定IN枚数計算ツール</h1>
+
+<!-- 設定 -->
+<div class="settings-card">
+  <div class="settings-title">⚙️ 設定（機種・店舗に合わせて変更）</div>
+  <div class="settings-row">
+    <div class="field">
+      <label>千円あたりの回転数（G）</label>
+      <input type="number" id="rate" value="30.7" step="0.1" min="0.1"
+             inputmode="decimal" oninput="recalcAll()">
+    </div>
+    <div class="field">
+      <label>千円あたりの貸出枚数</label>
+      <input type="number" id="mpk" value="50" step="1" min="1"
+             inputmode="numeric" oninput="recalcAll()">
+    </div>
+  </div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="btn-row">
+  <button class="btn-add" onclick="addCard()">＋ 追加</button>
+  <button class="btn-clear" onclick="clearAll()">リセット</button>
+</div>
+
+<p class="note">
+  G数 ÷ 回転数 ＝ 千円数（四捨五入）→ ×貸出枚数 − 払出し枚数 ＝ 推定IN枚数
+</p>
+
+<div class="total-fixed">
+  <div class="total-box">
+    <span class="label">推定IN枚数 合計</span>
+    <span class="value" id="totalCell">—</span>
+  </div>
+</div>
+
+<script>
+  let count = 0;
+
+  function getRate() {
+    return parseFloat(document.getElementById('rate').value) || 0;
+  }
+  function getMpk() {
+    return parseFloat(document.getElementById('mpk').value) || 0;
+  }
+
+  function addCard() {
+    count++;
+    const container = document.getElementById('cards');
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.id = `card${count}`;
+    div.innerHTML = `
+      <div class="card-header">${count}回目</div>
+      <div class="card-fields">
+        <div class="field">
+          <label>初当たりまでのG数</label>
+          <input type="number" id="g${count}" placeholder="例: 413" min="0"
+                 inputmode="numeric" oninput="recalcAll()">
+        </div>
+        <div class="field">
+          <label>払出し枚数</label>
+          <input type="number" id="p${count}" placeholder="例: 393" min="0"
+                 inputmode="numeric" oninput="recalcAll()">
+        </div>
+      </div>
+      <div class="card-result">推定IN枚数：<span id="r${count}">—</span></div>
+    `;
+    container.appendChild(div);
+  }
+
+  function recalcAll() {
+    const rate = getRate();
+    const mpk  = getMpk();
+    let total  = 0;
+    let hasAny = false;
+
+    for (let i = 1; i <= count; i++) {
+      const gEl = document.getElementById(`g${i}`);
+      const pEl = document.getElementById(`p${i}`);
+      const rEl = document.getElementById(`r${i}`);
+      if (!gEl || !pEl || !rEl) continue;
+
+      const g = parseFloat(gEl.value);
+      const p = parseFloat(pEl.value);
+
+      if (!isNaN(g) && g >= 0 && !isNaN(p) && p >= 0 && rate > 0 && mpk > 0) {
+        const val = Math.round(g / rate) * mpk - p;
+        rEl.textContent = val.toLocaleString() + '枚';
+        total += val;
+        hasAny = true;
+      } else {
+        rEl.textContent = '—';
+      }
+    }
+    document.getElementById('totalCell').textContent =
+      hasAny ? total.toLocaleString() + '枚' : '—';
+  }
+
+  function clearAll() {
+    for (let i = 1; i <= count; i++) {
+      const g = document.getElementById(`g${i}`);
+      const p = document.getElementById(`p${i}`);
+      const r = document.getElementById(`r${i}`);
+      if (g) g.value = '';
+      if (p) p.value = '';
+      if (r) r.textContent = '—';
+    }
+    document.getElementById('totalCell').textContent = '—';
+  }
+
+  // 初期表示：3枚
+  for (let i = 0; i < 3; i++) addCard();
+</script>
+
+<p style="text-align:center;font-size:0.65rem;color:#444;margin-top:20px;padding-bottom:90px;">
+  <a href="privacy.html" style="color:#555;">プライバシーポリシー</a>
+</p>
+
+</body>
+</html>
