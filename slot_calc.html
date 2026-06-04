@@ -273,6 +273,37 @@
     }
     document.getElementById('totalCell').textContent =
       hasAny ? total.toLocaleString() + '枚' : '—';
+    saveState();
+  }
+
+  function saveState() {
+    const state = {
+      count,
+      rate: document.getElementById('rate').value,
+      mpk:  document.getElementById('mpk').value,
+    };
+    for (let i = 1; i <= count; i++) {
+      state[`g${i}`] = document.getElementById(`g${i}`)?.value || '';
+      state[`p${i}`] = document.getElementById(`p${i}`)?.value || '';
+    }
+    localStorage.setItem('slot_calc', JSON.stringify(state));
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem('slot_calc');
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      if (state.rate) document.getElementById('rate').value = state.rate;
+      if (state.mpk)  document.getElementById('mpk').value  = state.mpk;
+      const savedCount = Math.max(state.count || 3, 3);
+      while (count < savedCount) addCard();
+      for (let i = 1; i <= count; i++) {
+        if (state[`g${i}`]) document.getElementById(`g${i}`).value = state[`g${i}`];
+        if (state[`p${i}`]) document.getElementById(`p${i}`).value = state[`p${i}`];
+      }
+      recalcAll();
+    } catch(e) {}
   }
 
   function clearAll() {
@@ -285,10 +316,12 @@
       if (r) r.textContent = '—';
     }
     document.getElementById('totalCell').textContent = '—';
+    localStorage.removeItem('slot_calc');
   }
 
   // 初期表示：3枚
   for (let i = 0; i < 3; i++) addCard();
+  loadState();
 </script>
 
 <p style="text-align:center;font-size:0.65rem;color:#444;margin-top:20px;padding-bottom:90px;">
