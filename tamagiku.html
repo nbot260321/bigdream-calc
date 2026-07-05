@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>貯玉収支トラッカー</title>
+<style>
+:root{
+  --bg:#F5F5F0; --panel:#FFFFFF; --ink:#1A1A2E; --ink-soft:#666680;
+  --line:#E0E0E8; --accent:#4A90D9; --good:#2E7D32; --bad:#C62828;
+  --radius:12px; --shadow:0 2px 8px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;min-height:100vh}
+body{padding:0 0 80px}
+header{background:var(--accent);color:#fff;padding:16px;text-align:center}
+header h1{font-size:18px;font-weight:700}
+header p{font-size:12px;opacity:.85;margin-top:2px}
+.wrap{max-width:480px;margin:0 auto;padding:12px}
+
+.date-bar{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.date-bar label{font-size:12px;color:var(--ink-soft);font-weight:700;white-space:nowrap}
+.date-bar input{flex:1;border:none;font-size:16px;font-weight:700;color:var(--ink);background:transparent;text-align:right}
+.date-bar input:focus{outline:none}
+
+.store-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.store-name{font-size:15px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.store-name .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.row label{font-size:12px;color:var(--ink-soft);font-weight:700;width:70px;flex-shrink:0}
+.row input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:16px;font-weight:700;color:var(--ink);background:#FAFAFA;-webkit-appearance:none}
+.row input:focus{outline:none;border-color:var(--accent);background:#fff}
+.row input[readonly]{background:var(--bg);color:var(--ink-soft)}
+.profit-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0 2px;border-top:1px dashed var(--line);margin-top:4px}
+.profit-label{font-size:12px;color:var(--ink-soft)}
+.profit-value{font-size:20px;font-weight:800}
+.profit-value.plus{color:var(--good)}
+.profit-value.minus{color:var(--bad)}
+.profit-value.zero{color:var(--ink-soft)}
+
+.btn{width:100%;padding:14px;border-radius:var(--radius);border:none;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn:active{opacity:.7}
+.btn-primary{background:var(--accent);color:#fff;margin-bottom:8px}
+.btn-copy{background:var(--panel);color:var(--accent);border:2px solid var(--accent)}
+
+.output-section{margin-top:12px;display:none}
+.output-section.visible{display:block}
+textarea.out{width:100%;height:200px;border:1px solid var(--line);border-radius:var(--radius);padding:12px;font-size:14px;font-family:inherit;resize:none;background:var(--panel)}
+
+.settings-toggle{text-align:center;margin-bottom:12px}
+.settings-toggle button{background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:4px 8px;text-decoration:underline}
+.settings-panel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.settings-panel.open{display:block}
+.settings-panel h2{font-size:14px;font-weight:700;margin-bottom:10px;color:var(--ink-soft)}
+.store-setting{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.store-setting input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:14px}
+.store-setting input.rate{width:80px;flex:none}
+.store-setting button{background:#FFEBEE;border:1px solid #FFCDD2;color:#C62828;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
+.add-store-row{display:flex;gap:6px;margin-top:6px}
+.add-store-row input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:14px}
+.add-store-row button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.settings-hint{font-size:11px;color:var(--ink-soft);margin-top:6px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:99}
+.toast.show{opacity:1}
+
+.total-bar{background:var(--ink);color:#fff;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.total-bar .label{font-size:12px;opacity:.7}
+.total-bar .value{font-size:22px;font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <h1>貯玉収支トラッカー</h1>
+  <p>最終玉数を入れると翌日のスタートに自動転記</p>
+</header>
+<div class="wrap">
+  <div class="date-bar">
+    <label>収支日</label>
+    <input type="date" id="dateInput">
+  </div>
+
+  <div class="settings-toggle">
+    <button onclick="toggleSettings()">⚙ 店舗設定</button>
+  </div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <h2>店舗名 / 換金率（円/玉単位）</h2>
+    <div id="storeSettings"></div>
+    <div class="add-store-row">
+      <input type="text" id="newStoreName" placeholder="店舗名">
+      <input type="number" id="newStoreRate" placeholder="換金率" class="rate" value="19.2" step="0.1">
+      <button onclick="addStore()">追加</button>
+    </div>
+    <p class="settings-hint">換金率の例：19.2円/玉単位（数値で調整してください）</p>
+  </div>
+
+  <div id="totalBar" class="total-bar" style="display:none">
+    <span class="label">合計収支</span>
+    <span class="value" id="totalValue">¥0</span>
+  </div>
+
+  <div id="storeCards"></div>
+
+  <button class="btn btn-primary" onclick="saveAndNext()">💾 保存して翌日スタートに転記</button>
+  <button class="btn btn-copy" onclick="copyOutput()">📋 テキスト形式でコピー</button>
+
+  <div class="output-section" id="outputSection">
+    <textarea class="out" id="outputText" readonly></textarea>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'tamagiku_v1';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+}
+function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function defaultStores() {
+  return [
+    { name: '東梅田', rate: 19.2 },
+    { name: '123', rate: 19.2 },
+    { name: '西梅田', rate: 19.2 }
+  ];
+}
+
+function getStores() {
+  const d = load();
+  return d.stores || defaultStores();
+}
+
+function setStores(stores) {
+  const d = load();
+  d.stores = stores;
+  save(d);
+}
+
+function getStarts() {
+  const d = load();
+  return d.starts || {};
+}
+
+function setStarts(starts) {
+  const d = load();
+  d.starts = starts;
+  save(d);
+}
+
+function todayStr() {
+  const t = new Date();
+  return t.toISOString().slice(0, 10);
+}
+
+// --- Init ---
+window.onload = function() {
+  document.getElementById('dateInput').value = todayStr();
+  renderSettings();
+  renderCards();
+  updateTotal();
+};
+
+// --- Settings ---
+function toggleSettings() {
+  const p = document.getElementById('settingsPanel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) renderSettings();
+}
+
+function renderSettings() {
+  const stores = getStores();
+  const el = document.getElementById('storeSettings');
+  el.innerHTML = stores.map((s, i) => `
+    <div class="store-setting">
+      <input type="text" value="${s.name}" onchange="updateStoreName(${i},this.value)">
+      <input type="number" class="rate" value="${s.rate}" step="0.1" onchange="updateStoreRate(${i},this.value)">
+      <button onclick="removeStore(${i})">削除</button>
+    </div>`).join('');
+}
+
+function updateStoreName(i, val) {
+  const stores = getStores();
+  const oldName = stores[i].name;
+  stores[i].name = val;
+  setStores(stores);
+  // rename starts key
+  const starts = getStarts();
+  if (starts[oldName] !== undefined) { starts[val] = starts[oldName]; delete starts[oldName]; setStarts(starts); }
+  renderCards(); updateTotal();
+}
+
+function updateStoreRate(i, val) {
+  const stores = getStores();
+  stores[i].rate = parseFloat(val) || stores[i].rate;
+  setStores(stores);
+  renderCards(); updateTotal();
+}
+
+function removeStore(i) {
+  const stores = getStores();
+  stores.splice(i, 1);
+  setStores(stores);
+  renderSettings(); renderCards(); updateTotal();
+}
+
+function addStore() {
+  const name = document.getElementById('newStoreName').value.trim();
+  const rate = parseFloat(document.getElementById('newStoreRate').value) || 19.2;
+  if (!name) return;
+  const stores = getStores();
+  stores.push({ name, rate });
+  setStores(stores);
+  document.getElementById('newStoreName').value = '';
+  renderSettings(); renderCards(); updateTotal();
+}
+
+// --- Cards ---
+function renderCards() {
+  const stores = getStores();
+  const starts = getStarts();
+  const el = document.getElementById('storeCards');
+  el.innerHTML = stores.map((s, i) => {
+    const start = starts[s.name] !== undefined ? starts[s.name] : '';
+    return `
+    <div class="store-card">
+      <div class="store-name"><span><span class="dot"></span>${s.name}</span><span style="font-size:11px;color:var(--ink-soft);font-weight:400">換金率 ${s.rate}円</span></div>
+      <div class="row">
+        <label>スタート</label>
+        <input type="number" readonly value="${start}" id="start_${i}">
+      </div>
+      <div class="row">
+        <label>最終</label>
+        <input type="number" inputmode="numeric" id="final_${i}" placeholder="入力してください" oninput="onFinalInput(${i})">
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">収支（${s.rate}円/単位）</span>
+        <span class="profit-value zero" id="profit_${i}">—</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function onFinalInput(i) {
+  const stores = getStores();
+  const s = stores[i];
+  const startEl = document.getElementById('start_' + i);
+  const finalEl = document.getElementById('final_' + i);
+  const profitEl = document.getElementById('profit_' + i);
+  const startVal = parseFloat(startEl.value);
+  const finalVal = parseFloat(finalEl.value);
+  if (!isNaN(startVal) && !isNaN(finalVal)) {
+    const diff = finalVal - startVal;
+    const profit = Math.round(diff * s.rate);
+    profitEl.textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString() + '円';
+    profitEl.className = 'profit-value ' + (profit > 0 ? 'plus' : profit < 0 ? 'minus' : 'zero');
+  } else {
+    profitEl.textContent = '—';
+    profitEl.className = 'profit-value zero';
+  }
+  updateTotal();
+}
+
+function updateTotal() {
+  const stores = getStores();
+  let total = null;
+  stores.forEach((s, i) => {
+    const startEl = document.getElementById('start_' + i);
+    const finalEl = document.getElementById('final_' + i);
+    if (!startEl || !finalEl) return;
+    const startVal = parseFloat(startEl.value);
+    const finalVal = parseFloat(finalEl.value);
+    if (!isNaN(startVal) && !isNaN(finalVal)) {
+      if (total === null) total = 0;
+      total += Math.round((finalVal - startVal) * s.rate);
+    }
+  });
+  const bar = document.getElementById('totalBar');
+  const val = document.getElementById('totalValue');
+  if (total !== null) {
+    bar.style.display = 'flex';
+    val.textContent = (total >= 0 ? '+' : '') + total.toLocaleString() + '円';
+    val.style.color = total > 0 ? '#81C784' : total < 0 ? '#EF9A9A' : '#fff';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// --- Save ---
+function saveAndNext() {
+  const stores = getStores();
+  const starts = getStarts();
+  let saved = 0;
+  stores.forEach((s, i) => {
+    const finalEl = document.getElementById('final_' + i);
+    const finalVal = parseFloat(finalEl.value);
+    if (!isNaN(finalVal)) { starts[s.name] = finalVal; saved++; }
+  });
+  if (saved === 0) { showToast('最終玉数を入力してください'); return; }
+  setStarts(starts);
+  // clear final inputs and reload
+  stores.forEach((s, i) => {
+    const startEl = document.getElementById('start_' + i);
+    const finalEl = document.getElementById('final_' + i);
+    startEl.value = starts[s.name] || '';
+    finalEl.value = '';
+    const profitEl = document.getElementById('profit_' + i);
+    profitEl.textContent = '—'; profitEl.className = 'profit-value zero';
+  });
+  updateTotal();
+  // advance date by 1
+  const dateEl = document.getElementById('dateInput');
+  const d = new Date(dateEl.value); d.setDate(d.getDate() + 1);
+  dateEl.value = d.toISOString().slice(0, 10);
+  showToast('保存しました！翌日のスタートに転記済み');
+}
+
+// --- Copy ---
+function copyOutput() {
+  const stores = getStores();
+  const dateVal = document.getElementById('dateInput').value;
+  const [y, m, day] = dateVal.split('-');
+  const dateLabel = parseInt(m) + '/' + parseInt(day) + ' 収支';
+
+  let lines = [dateLabel, ''];
+  stores.forEach((s, i) => {
+    const startEl = document.getElementById('start_' + i);
+    const finalEl = document.getElementById('final_' + i);
+    const startVal = startEl.value;
+    const finalVal = finalEl.value;
+    const profit = startVal && finalVal ? Math.round((parseFloat(finalVal) - parseFloat(startVal)) * s.rate) : null;
+    lines.push('•' + s.name);
+    lines.push('スタート' + (startVal || ''));
+    lines.push('最終' + (finalVal || ''));
+    lines.push('=');
+    if (profit !== null) lines.push((profit >= 0 ? '+' : '') + profit.toLocaleString());
+    lines.push('');
+  });
+
+  const text = lines.join('\n').trimEnd();
+  document.getElementById('outputText').value = text;
+  document.getElementById('outputSection').classList.add('visible');
+  navigator.clipboard.writeText(text).then(() => showToast('コピーしました！')).catch(() => showToast('テキストを下からコピーしてください'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
